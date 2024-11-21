@@ -1,95 +1,42 @@
-class NodoRaft:
-    def __init__(self, id, term=0, estado="Seguidor"):
+class ProxyAplicacion:
+    def __init__(self, nodos):
         """
-        Inicializa un nodo Raft con un identificador único, término inicial y estado.
-        """
-        self.id = id
-        self.term = term
-        self.estado = estado  # Puede ser 'Seguidor', 'Candidato' o 'Líder'
-        self.log = []
-        self.votos_recibidos = 0
-        self.lider_actual = None
-        self.activo = True  # Indica si el nodo está activo
-        self.followers = []  # Lista de nodos seguidores
-
-    def simular_caida(self):
-        """
-        Simula la caída del nodo, marcándolo como inactivo.
-        """
-        print(f"[Nodo {self.id}] Simulando caída...")
-        self.activo = False
-
-    def reincorporarse(self):
-        """
-        Simula la reincorporación del nodo, marcándolo como activo.
-        """
-        print(f"[Nodo {self.id}] Reincorporándose...")
-        self.activo = True
-
-    def iniciar_eleccion(self):
-        """
-        Inicia un proceso de elección de líder. Incrementa el término y solicita votos.
-        """
-        print(f"[Nodo {self.id}] Iniciando elección...")
-        self.term += 1
-        self.estado = "Candidato"
-        self.votos_recibidos = 1  # El nodo vota por sí mismo
-
-        for nodo in self.followers:
-            if nodo.activo and nodo.request_vote(self.id, self.term, len(self.log), self.term):
-                self.votos_recibidos += 1
-
-        if self.votos_recibidos > len(self.followers) // 2:
-            print(f"[Nodo {self.id}] Ha sido elegido como líder.")
-            self.estado = "Líder"
-            self.lider_actual = self.id
-
-    def request_vote(self, candidato_id, term, last_log_index, last_log_term):
-        """
-        Responde a una solicitud de voto.
+        Inicializa el proxy con la lista de nodos Raft disponibles.
 
         Args:
-            candidato_id (int): ID del candidato solicitando el voto.
-            term (int): Término del candidato.
-            last_log_index (int): Último índice de log del candidato.
-            last_log_term (int): Último término de log del candidato.
-
-        Returns:
-            bool: True si el voto es otorgado, False en caso contrario.
+            nodos (list): Lista de nodos Raft en el sistema.
         """
-        if not self.activo:
-            return False
+        self.nodos = nodos
+        self.lider_id = None
 
-        if term > self.term:
-            self.term = term
-            self.estado = "Seguidor"
-            print(f"[Nodo {self.id}] Votando por Nodo {candidato_id}")
-            return True
-
-        return False
-
-    def append_entries(self, leader_id, term, prev_log_index, prev_log_term, entries, leader_commit):
+    def actualizar_lider(self, nuevo_lider_id):
         """
-        Recibe entradas del líder y las aplica al log del nodo.
+        Actualiza el líder actual del sistema.
 
         Args:
-            leader_id (int): ID del líder que envía las entradas.
-            term (int): Término actual del líder.
-            prev_log_index (int): Índice de la entrada previa al log.
-            prev_log_term (int): Término de la entrada previa al log.
-            entries (list): Nuevas entradas del log.
-            leader_commit (int): Índice de compromiso del líder.
+            nuevo_lider_id (int): ID del nuevo líder.
+        """
+        self.lider_id = nuevo_lider_id
+        print(f"[Proxy] Líder actualizado a Nodo {nuevo_lider_id}")
+
+    def redirect_request(self, cliente_id, tipo_solicitud, datos):
+        """
+        Redirige las solicitudes al nodo líder o maneja errores si no hay un líder.
+
+        Args:
+            cliente_id (int): ID del cliente que envía la solicitud.
+            tipo_solicitud (str): Tipo de la solicitud (lectura/escritura).
+            datos (dict): Datos asociados a la solicitud.
 
         Returns:
-            bool: True si las entradas se aplicaron correctamente, False si hubo conflicto.
+            str: Respuesta al cliente.
         """
-        if term < self.term:
-            print(f"[Nodo {self.id}] Rechazando entradas: término del líder {term} menor que término actual {self.term}")
-            return False
+        if self.lider_id is None:
+            return f"[Proxy] Error: No hay líder disponible para manejar la solicitud."
 
-        # Aceptar entradas del líder
-        self.term = term
-        self.lider_actual = leader_id
-        self.log.extend(entries)
-        print(f"[Nodo {self.id}] Entradas aceptadas y aplicadas: {entries}")
-        return True
+        if tipo_solicitud == "lectura":
+            return f"[Proxy] Redirigido al Nodo {self.lider_id} (lectura): {datos}"
+        elif tipo_solicitud == "escritura":
+            return f"[Proxy] Enviando a Nodo {self.lider_id} (escritura): {datos}"
+        else:
+            return f"[Proxy] Tipo de solicitud no reconocido: {tipo_solicitud}"
