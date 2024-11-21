@@ -1,6 +1,6 @@
-from src.nodo_raft import NodoRaft
-from src.proxy import ProxyAplicacion
-from src.cliente import Cliente
+from nodo_raft import NodoRaft
+from proxy import ProxyAplicacion
+from cliente import Cliente
 import time
 import random
 
