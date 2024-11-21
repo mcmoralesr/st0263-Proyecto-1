@@ -1,0 +1,7 @@
+# Dependencias principales
+loguru==0.7.0           # Manejo avanzado de logs
+
+# Dependencias opcionales para desarrollo
+mypy==1.5.1             # Verificación de tipos estáticos
+black==23.9.1           # Formateador automático de código
+flake8==6.1.0           # Herramienta para verificar estilo de código
